@@ -16,13 +16,21 @@ export class MkClient {
     public async postMisskey(post: Post, params: MisskeyParams) {
         return this.client.request('notes/create', {
             visibility: params.visibility,
-            text: post.formattedContent,
+            text: this.formatBody(post),
             localOnly: params.localOnly,
             noExtractMentions: false,
             noExtractHashtags: false,
             noExtractEmojis: false,
             channelId: params.channel,
           })
+    }
+
+    formatBody(post: Post): string {
+        return [
+            post.formattedContent,
+            (post.appendTags.map(x => '#' + x).join(' ')),
+            (post.url ?? '')
+        ].join(' ');
     }
 
     /**

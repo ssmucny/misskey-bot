@@ -1,6 +1,6 @@
 {
   "name": "misskey-bot",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "A bot to crosspost content to Misskey",
   "main": "dist/src/index.js",
   "author": "Sam Smucny",
@@ -16,8 +16,12 @@
     "test:coverage": "jest --coverage"
   },
   "dependencies": {
+    "@types/config": "^3.3.0",
+    "@types/js-yaml": "^4.0.5",
     "@typescript-eslint/typescript-estree": "^5.46.0",
+    "config": "^3.3.8",
     "dotenv": "^16.0.3",
+    "js-yaml": "^4.1.0",
     "misskey-js": "^0.0.14",
     "rss-parser": "^3.12.0"
   },

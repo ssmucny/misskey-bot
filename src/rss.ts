@@ -1,4 +1,5 @@
 import * as rss from 'rss-parser'
+import { Parser } from 'xml2js';
 import { Post, PostParams } from './types'
 
 /**
@@ -10,11 +11,16 @@ function formatContent(content: string) {
     return content;
 }
 
+function log<T>(val: T): T {
+    console.log(val);
+    return val;
+}
+
 function transformCategories(cats: string[], tagMap: Map<string, string>): string[] {
-    return cats
+    return Array.from(new Set(cats
         .map(c => c.toLowerCase())
-        .map(c => tagMap.get(c))
-        .filter(t => t !== undefined) as string[];
+        .map(c => tagMap.has(c) ? tagMap.get(c): tagMap.get(log(c)))
+        .filter(t => t !== undefined))) as string[];
 }
 
 export async function getRSS(url: string, params: PostParams): Promise<Post[]> {
@@ -30,4 +36,9 @@ export async function getRSS(url: string, params: PostParams): Promise<Post[]> {
             guid: i.guid,
         }) as Post)
     )
+}
+
+export async function getCategories(url: string): Promise<string[]> {
+    const feed = await (new rss()).parseURL(url);
+    return feed.items.map(i => i.categories ?? []).flatMap(x => x);
 }

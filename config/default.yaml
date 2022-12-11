@@ -1,0 +1,30 @@
+feeds:
+  - instanceUrl: https://test.example.com
+    rssUrl: https://test.rss.feed/feed
+    userToken: XXXXXXXXXXX
+    refreshFrequencyMin: 60
+    dateOverride: 2000-12-01
+    misskeyParams:
+      visibility: public
+      localOnly: true
+    postParams:
+      tags:
+        - category: "Override tag"
+          tag: special tag
+  - instanceUrl: https://test.example.com
+    rssUrl: https://test.rss.feed/feed
+    userToken: XXXXXXXXXXX
+    refreshFrequencyMin: 60
+    dateOverride: 2022-12-01
+    misskeyParams:
+      visibility: public
+      localOnly: true
+    postParams:
+      tags: []
+tags:
+  - category: Theatre
+    tag: theatre
+  - category: Performance
+    tag: performance
+  - category: Review
+    tag: review

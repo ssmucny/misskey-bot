@@ -1,57 +1,71 @@
-/* eslint-disable prettier/prettier */
-/**
- * The following lines intialize dotenv,
- * so that env vars from the .env file are present in process.env
- */
-import * as dotenv from 'dotenv';
 import { MkClient } from './misskey';
+import { load as yamlLoad } from 'js-yaml';
+import { readFileSync } from 'fs';
 import { BotConfig, FeedConfig, Post } from './types';
-import { getRSS } from './rss';
+import { getCategories, getRSS } from './rss';
 
-dotenv.config();
+console.log('Usage: npm run start -- {path to yaml config} [--index-tags | -d]')
 
-const testConfig: BotConfig = {
-    feeds: [
-        {
-            instanceUrl: 'https://test.thecle.land',
-            rssUrl: 'https://coolcleveland.com/feed',
-            userToken: 'XXXXXX',
-            refreshFrequencyMin: 60,
-            dateOverride: '2022-12-09',
-            misskeyParams: {
-                visibility: 'public',
-                localOnly: true,
-            },
-            postParams: {
-                tags: [],
-            }
-        }
-    ],
-    tags: [
-        { category: 'Theatre', tag: 'theatre' },
-        { category: 'Performance', tag: 'performance' },
-        { category: 'Review', tag: 'review' },
-    ]
+console.log(process.argv)
+const configFile = process.argv[2] ?? './config.yaml';
+const yamlContents = readFileSync(configFile, 'utf-8');
+console.log('---YAML CONFIG BEGIN---')
+console.log(yamlContents);
+console.log('---YAML CONFIG END---')
+const config = yamlLoad(yamlContents) as BotConfig;
+
+if (process.argv[3] === '--index-tags') {
+    indexTags(config)
+} else if (process.argv[3] === '-d') {
+    start(config); // main process
+} else {
+    console.error('Invalid parameters:', 'Usage: npm run start -- {path to yaml config} [--index-tags | -d]')
 }
 
-const globalTagMap = new Map<string, string>();
-testConfig.tags.forEach(t => globalTagMap.set(t.category.toLowerCase(), t.tag));
+async function indexTags(config: BotConfig) {
+    console.log('Indexing tags...\n')
+    const globalTagMap = new Map<string, string>();
+    config.tags.forEach(t => globalTagMap.set(t.category.toLowerCase(), t.tag));
 
-testConfig.feeds.forEach(async feed => {
+    const feeds = await Promise.all(config.feeds.map(x => x.rssUrl).map(async u => ({
+        url: u,
+        categories: await getCategories(u)
+    })))
 
-    // create feed specific tags
-    const feedTags = new Map<string, string>(globalTagMap); // intial copy from global tag map
-    feed.postParams.tags.forEach(t => feedTags.set(t.category.toLowerCase(), t.tag)); // override/add to
+    const allCats = feeds
+        .map(x => x.categories)
+        .flatMap(x => x)
+    
+    let tagIndex: any = {};
+    allCats.forEach(c => tagIndex[c] ? tagIndex[c]++ : tagIndex[c] = 1)
+    const count = Object.keys(tagIndex).map(x => ({ tag: x, count: tagIndex[x]})).sort((a, b) => b.count - a.count)
 
-    let rssCache: Post[] | undefined = undefined;
-    rssCache = await updatePosts(feed, feedTags, rssCache); // call first time
+    count
+    .filter(x => !globalTagMap.has(x.tag.toLowerCase())) // only show unsupported tags
+    .forEach(x => console.log(`${x.tag} : ${x.count}`))
+}
 
-    console.log(`Creating worker to update every ${feed.refreshFrequencyMin} minutes: ${feed.rssUrl} -> ${feed.instanceUrl}`);
-    // set up interval execution
-    setInterval(async () => {
-        rssCache = await updatePosts(feed, feedTags, rssCache);
-    }, 1000*60*feed.refreshFrequencyMin)
-})
+async function start(config: BotConfig) {
+
+    const globalTagMap = new Map<string, string>();
+    config.tags.forEach(t => globalTagMap.set(t.category.toLowerCase(), t.tag));
+
+    config.feeds.forEach(async feed => {
+
+        // create feed specific tags
+        const feedTags = new Map<string, string>(globalTagMap); // intial copy from global tag map
+        feed.postParams.tags.forEach(t => feedTags.set(t.category.toLowerCase(), t.tag)); // override/add to
+
+        let rssCache: Post[] | undefined = undefined;
+        rssCache = await updatePosts(feed, feedTags, rssCache); // call first time
+
+        console.log(`Creating worker to update every ${feed.refreshFrequencyMin} minutes: ${feed.rssUrl} -> ${feed.instanceUrl}`);
+        // set up interval execution
+        setInterval(async () => {
+            rssCache = await updatePosts(feed, feedTags, rssCache);
+        }, 1000*60*feed.refreshFrequencyMin)
+    })
+}
 
 async function updatePosts(feed: FeedConfig, tags: Map<string, string>, rssCache?: Post[]): Promise<Post[]> {
     console.log(`Updating: ${feed.rssUrl} -> ${feed.instanceUrl}`)
