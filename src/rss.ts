@@ -26,6 +26,8 @@ export async function getRSS(url: string, params: PostParams): Promise<Post[]> {
             formattedContent: formatContent(i.contentSnippet ??  ""),
             mediaUrls: [], // somehow extract images...
             appendTags: transformCategories(i.categories ?? [], params.tagMap),
+            createdDate: i.isoDate ? new Date(i.isoDate) : new Date(),
+            guid: i.guid,
         }) as Post)
     )
 }
