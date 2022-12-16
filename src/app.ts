@@ -62,7 +62,11 @@ async function start(config: BotConfig) {
         console.log(`Creating worker to update every ${feed.refreshFrequencyMin} minutes: ${feed.rssUrl} -> ${feed.instanceUrl}`);
         // set up interval execution
         setInterval(async () => {
-            rssCache = await updatePosts(feed, feedTags, rssCache);
+            try {
+                rssCache = await updatePosts(feed, feedTags, rssCache);
+            } catch (e) {
+                console.error(`Encountered error when updating posts for ${feed.rssUrl} -> ${feed.instanceUrl}`, e, `Will retry in ${feed.refreshFrequencyMin} minutes.`)
+            }
         }, 1000*60*feed.refreshFrequencyMin)
     })
 }
@@ -91,7 +95,7 @@ async function updatePosts(feed: FeedConfig, tags: Map<string, string>, rssCache
 
     const newPosts = posts
         .filter(p => p.createdDate > lastDate)
-        //.sort((p1, p2) => p1.createdDate.getTime() - p2.createdDate.getTime());
+        .sort((p1, p2) => p1.createdDate.getTime() - p2.createdDate.getTime());
     console.log(`${lastDate} -> New posts: ${newPosts.length}`);
 
     const notes = await Promise.all(newPosts.map(post => mkApi.postMisskey(post, feed.misskeyParams)));

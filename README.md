@@ -12,6 +12,8 @@
 
 -   You can run `npm dev` to combine the 2 steps above, while listening to changes and restarting automatically.
 
+`npm run build; npm run start -- <path-to-config-yaml> -d`
+
 ## Run with Docker
 
 1. Build:

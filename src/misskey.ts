@@ -1,8 +1,11 @@
-import { api as misskeyApi } from 'misskey-js';
+import { api, api as misskeyApi } from 'misskey-js';
 import { APIClient } from 'misskey-js/built/api';
 import { User } from 'misskey-js/built/entities';
 import { MisskeyParams, Post } from 'types';
 
+/**
+ * Client for accessing the Misskey API
+ */
 export class MkClient {
     private client: APIClient;
 
@@ -13,6 +16,12 @@ export class MkClient {
         });
     }
 
+    /**
+     * Post a note to Misskey
+     * @param post 
+     * @param params 
+     * @returns The created `Note`
+     */
     public async postMisskey(post: Post, params: MisskeyParams) {
         return this.client.request('notes/create', {
             visibility: params.visibility,
@@ -25,6 +34,11 @@ export class MkClient {
           })
     }
 
+    /**
+     * Structures the content from a `Post` into a Misskey compatible format
+     * @param post 
+     * @returns MFM compatible string
+     */
     formatBody(post: Post): string {
         return [
             post.formattedContent,
